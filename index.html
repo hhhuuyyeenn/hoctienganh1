@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IntelliLearn - Học Tiếng Anh Thông Minh</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;700&display=swap');
+        html {
+            scroll-behavior: smooth;
+        }
+        body {
+            font-family: 'Be Vietnam Pro', sans-serif;
+            background-color: #f0f2f5;
+        }
+        .sidebar {
+            transition: transform 0.3s ease-in-out;
+        }
+        .main-content {
+            transition: margin-left 0.3s ease-in-out;
+        }
+        .flashcard-container {
+            perspective: 1000px;
+        }
+        .flashcard {
+            width: 100%;
+            height: 250px;
+            position: relative;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+        .flashcard.is-flipped {
+            transform: rotateY(180deg);
+        }
+        .flashcard-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .flashcard-front {
+            background: white;
+        }
+        .flashcard-back {
+            background: #f8fafc;
+            transform: rotateY(180deg);
+            overflow-y: auto;
+            align-items: flex-start;
+        }
+        .pill {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin: 2px;
+            cursor: pointer;
+        }
+        .pill-blue {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+        .pill-red {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+        .pill-green {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+        #mini-dictionary {
+            position: absolute;
+            z-index: 1000;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+            width: 320px;
+            padding: 16px;
+            display: none;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        /* Custom scrollbar for mini dictionary and other elements */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        /* Toast Notification */
+        #toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #2d3748;
+            color: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            z-index: 1001;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+            visibility: hidden;
+        }
+        #toast.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        /* Exam Navigator */
+        .nav-q-btn {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid #cbd5e1;
+            border-radius: 0.375rem;
+            transition: all 0.2s;
+        }
+        .nav-q-btn:hover {
+            background-color: #e2e8f0;
+        }
+        .nav-q-btn.answered {
+            background-color: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <!-- Mini Dictionary Popup -->
+    <div id="mini-dictionary"></div>
+    
+    <!-- Toast Notification -->
+    <div id="toast"></div>
+
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="sidebar bg-white w-64 min-h-screen p-4 shadow-lg fixed lg:relative transform -translate-x-full lg:translate-x-0 z-50">
+            <div class="flex items-center mb-8">
+                <i class="fas fa-brain text-3xl text-blue-600 mr-3"></i>
+                <h1 class="text-2xl font-bold text-gray-800">IntelliLearn</h1>
+            </div>
+            <nav>
+                <a href="#dashboard" class="nav-link flex items-center p-3 my-1 text-gray-700 rounded-lg hover:bg-blue-100 font-medium bg-blue-100">
+                    <i class="fas fa-home w-6 text-center text-blue-600"></i><span class="ml-4">Bảng Điều Khiển</span>
+                </a>
+                <a href="#flashcards" class="nav-link flex items-center p-3 my-1 text-gray-700 rounded-lg hover:bg-blue-100 font-medium">
+                    <i class="fas fa-layer-group w-6 text-center text-blue-600"></i><span class="ml-4">Flashcards Thông Minh</span>
+                </a>
+                <a href="#grammar" class="nav-link flex items-center p-3 my-1 text-gray-700 rounded-lg hover:bg-blue-100 font-medium">
+                    <i class="fas fa-spell-check w-6 text-center text-blue-600"></i><span class="ml-4">Luyện Ngữ Pháp</span>
+                </a>
+                <a href="#reading" class="nav-link flex items-center p-3 my-1 text-gray-700 rounded-lg hover:bg-blue-100 font-medium">
+                    <i class="fas fa-book-open w-6 text-center text-blue-600"></i><span class="ml-4">Khu Vực Đọc Hiểu</span>
+                </a>
+                <a href="#translate" class="nav-link flex items-center p-3 my-1 text-gray-700 rounded-lg hover:bg-blue-100 font-medium">
+                    <i class="fas fa-language w-6 text-center text-blue-600"></i><span class="ml-4">Công Cụ Dịch</span>
+                </a>
+                <a href="#exam" class="nav-link flex items-center p-3 my-1 text-gray-700 rounded-lg hover:bg-blue-100 font-medium">
+                    <i class="fas fa-graduation-cap w-6 text-center text-blue-600"></i><span class="ml-4">Luyện Thi THPT</span>
+                </a>
+                <a href="#vocabulary" class="nav-link flex items-center p-3 my-1 text-gray-700 rounded-lg hover:bg-blue-100 font-medium">
+                    <i class="fas fa-book w-6 text-center text-blue-600"></i><span class="ml-4">Sổ Từ Vựng</span>
+                </a>
+                 <a href="#word-family" class="nav-link flex items-center p-3 my-1 text-gray-700 rounded-lg hover:bg-blue-100 font-medium">
+                    <i class="fas fa-project-diagram w-6 text-center text-blue-600"></i><span class="ml-4">Tra Cứu Word Family</span>
+                </a>
+                <a href="#progress" class="nav-link flex items-center p-3 my-1 text-gray-700 rounded-lg hover:bg-blue-100 font-medium">
+                    <i class="fas fa-chart-line w-6 text-center text-blue-600"></i><span class="ml-4">Báo Cáo Tiến Độ</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main id="main-content" class="main-content flex-1 p-4 lg:p-8 overflow-y-auto">
+            <!-- Header -->
+            <header class="flex justify-between items-center mb-8">
+                <button id="menu-toggle" class="lg:hidden text-2xl text-gray-600">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h2 id="page-title" class="text-3xl font-bold text-gray-800">Bảng Điều Khiển</h2>
+                <div class="flex items-center">
+                    <i class="fas fa-user-circle text-3xl text-gray-600"></i>
+                    <span class="ml-3 font-medium text-gray-700">Xin chào!</span>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <div id="page-container">
+                <!-- Content will be loaded here -->
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // --- MOCK DATA & APP STATE ---
+        const appState = {
+            currentPage: 'dashboard',
+            exams: {
+                'thpt-2023': { name: 'Đề thi thử THPT 2023', questions: [ /* a full exam would be here */ ] },
+                'thpt-2022': { name: 'Đề thi thử THPT 2022', questions: [ /* a full exam would be here */ ] },
+            },
+            vocabulary: {
+                collections: [
+                    { id: 1, name: 'Unit 1: Family Life', words: [1, 2] },
+                    { id: 2, name: 'Unit 2: Relationships', words: [3] },
+                    { id: 3, name: 'Technology Vocabulary', words: [4, 5, 6, 7] },
+                ],
+                words: {
+                    1: { id: 1, eng: 'diligent', type: '(adj)', ipa: '/ˈdɪlɪdʒənt/', meaning: 'siêng năng, cần cù', example: 'Her diligent efforts were rewarded with a promotion.', collocations: 'diligent student/worker', synonyms: ['industrious', 'hard-working'], antonyms: ['lazy', 'idle'], status: 'learning', nextReview: new Date(), interval: 1, easeFactor: 2.5 },
+                    2: { id: 2, eng: 'ubiquitous', type: '(adj)', ipa: '/juːˈbɪkwɪtəs/', meaning: 'phổ biến, ở đâu cũng có', example: 'The mobile phone is a ubiquitous feature of modern life.', collocations: 'ubiquitous presence', synonyms: ['omnipresent', 'pervasive'], antonyms: ['rare', 'scarce'], status: 'new', nextReview: new Date(), interval: 1, easeFactor: 2.5 },
+                    3: { id: 3, eng: 'eloquent', type: '(adj)', ipa: '/ˈeləkwənt/', meaning: 'hùng hồn, có tài hùng biện', example: 'She made an eloquent plea for peace.', collocations: 'eloquent speech/speaker', synonyms: ['articulate', 'fluent'], antonyms: ['inarticulate'], status: 'learning', nextReview: new Date(), interval: 1, easeFactor: 2.5 },
+                    4: { id: 4, eng: 'integral', type: '(adj)', ipa: '/ˈɪntɪɡrəl/', meaning: 'thiết yếu, không thể thiếu', example: 'Technology is an integral part of modern business.', collocations: 'integral part/component', synonyms: ['essential', 'fundamental'], antonyms: ['peripheral', 'secondary'], status: 'new', nextReview: new Date(), interval: 1, easeFactor: 2.5 },
+                    5: { id: 5, eng: 'unprecedented', type: '(adj)', ipa: '/ʌnˈpresɪdentɪd/', meaning: 'chưa từng có', example: 'The company has seen unprecedented growth this year.', collocations: 'unprecedented scale/level', synonyms: ['unheard-of', 'record-breaking'], antonyms: ['normal', 'common'], status: 'new', nextReview: new Date(), interval: 1, easeFactor: 2.5 },
+                    6: { id: 6, eng: 'navigate', type: '(v)', ipa: '/ˈnævɪɡeɪt/', meaning: 'định vị, điều hướng', example: 'It is crucial to navigate this digital landscape with awareness.', collocations: 'navigate a website/system', synonyms: ['steer', 'direct'], antonyms: ['get lost'], status: 'new', nextReview: new Date(), interval: 1, easeFactor: 2.5 },
+                    7: { id: 7, eng: 'detrimental', type: '(adj)', ipa: '/ˌdetrɪˈmentl/', meaning: 'có hại, bất lợi', example: 'Excessive screen time can be detrimental to your health.', collocations: 'detrimental effect/impact', synonyms: ['harmful', 'damaging'], antonyms: ['beneficial', 'harmless'], status: 'new', nextReview: new Date(), interval: 1, easeFactor: 2.5 },
+                },
+                nextWordId: 8,
+            },
+            currentFlashcard: {
+                collectionId: 1,
+                wordIndex: 0
+            }
+        };
+
+        // --- MOCK EXAM CONTENT ---
+        const mockPdfExamContent = {
+            name: 'Đề thi từ PDF',
+            questions: [
+                { id: 1, type: 'mcq', question: 'Mark the letter A, B, C, or D to indicate the word whose underlined part differs from the other three in pronunciation.', options: ['<u>th</u>anks', '<u>th</u>ink', '<u>th</u>rough', '<u>th</u>ose'], answer: 'D' },
+                { id: 2, type: 'mcq', question: 'The government has _______ new measures to combat unemployment.', options: ['introduced', 'made', 'taken', 'done'], answer: 'A' },
+                { id: 3, type: 'reading_cloze', passage: 'For many people, the concept of a gap year is an exciting one. It is an opportunity to travel the world, (3)_______ new skills, and gain valuable life experience. However, it is important to plan carefully to (4)_______ the most of it.', questions: [
+                    { id: 3, question: 'Câu 3', options: ['learn', 'catch', 'see', 'go'], answer: 'A' },
+                    { id: 4, question: 'Câu 4', options: ['do', 'make', 'get', 'have'], answer: 'B' }
+                ]},
+                { id: 5, type: 'reading_passage', passage: 'The Great Pyramid of Giza is one of the most impressive ancient structures. Built as a tomb for the pharaoh Khufu, it stood as the tallest man-made structure in the world for over 3,800 years. Its construction remains a marvel of engineering, with millions of massive stone blocks moved and placed with incredible precision.', questions: [
+                    { id: 5, question: 'What was the primary purpose of the Great Pyramid?', options: ['A palace', 'A tomb', 'A temple', 'A fortress'], answer: 'B' },
+                    { id: 6, question: 'For how long was the pyramid the tallest structure?', options: ['Less than 1000 years', 'Around 2000 years', 'More than 3000 years', 'Exactly 3800 years'], answer: 'C' }
+                ]}
+            ]
+        };
+        appState.exams['thpt-2023'] = mockPdfExamContent; // Use the same content for the default exam for demo purposes
+        appState.exams['thpt-2022'] = mockPdfExamContent;
+
+
+        const mockDictionary = { // Expanded dictionary
+            'effort': { type: '(n)', ipa: '/ˈefət/', meaning: 'nỗ lực, sự cố gắng', example: 'You need to put more effort into your work.', collocations: 'make an effort, a concerted effort', synonyms: ['attempt', 'endeavor'], antonyms: ['ease', 'idleness'] },
+            'feature': { type: '(n)', ipa: '/ˈfiːtʃə(r)/', meaning: 'đặc điểm, tính năng', example: 'A key feature of the new phone is its foldable screen.', collocations: 'main feature, distinguishing feature', synonyms: ['characteristic', 'quality'], antonyms: [] },
+            'modern': { type: '(adj)', ipa: '/ˈmɒdn/', meaning: 'hiện đại', example: 'We live in a modern society.', collocations: 'modern technology, modern art', synonyms: ['contemporary', 'up-to-date'], antonyms: ['old-fashioned', 'archaic'] },
+            'revolutionized': { type: '(v)', ipa: '/ˌrevəˈluːʃənaɪzd/', meaning: 'cách mạng hóa', example: 'The internet has revolutionized the way we live.', collocations: 'revolutionize an industry', synonyms: ['transform', 'overhaul'], antonyms: ['maintain'] },
+            'advancement': { type: '(n)', ipa: '/ədˈvɑːnsmənt/', meaning: 'sự tiến bộ', example: 'There have been great advancements in medical science.', collocations: 'technological advancement', synonyms: ['progress', 'development'], antonyms: ['regression'] },
+            'privacy': { type: '(n)', ipa: '/ˈprɪvəsi/', meaning: 'sự riêng tư', example: 'The new law is designed to protect people\'s privacy.', collocations: 'right to privacy, invade privacy', synonyms: ['confidentiality', 'seclusion'], antonyms: ['publicity'] },
+        };
+
+        const mockWordFamily = {
+            'succeed': { headword: 'succeed', noun: 'success, succession', adj: 'successful, successive', adv: 'successfully, successively', verb: 'succeed', prep: '-', det: '-', conj: '-', related: 'succeed in doing sth' },
+            'beauty': { headword: 'beauty', noun: 'beauty, beautician', adj: 'beautiful', adv: 'beautifully', verb: 'beautify', prep: '-', det: '-', conj: '-', related: 'the beauty of nature' },
+            'act': { headword: 'act', noun: 'act, action, actor, actress, activity', adj: 'active', adv: 'actively', verb: 'act, activate', prep: '-', det: '-', conj: '-', related: 'take action' },
+        };
+        
+        const mockGrammar = {
+            'Thì của động từ': [
+                { question: 'Last night, I _______ (watch) a movie when my friends _______ (call).', answer: ['was watching', 'called'], explanation: 'Dùng thì QKTD cho hành động đang diễn ra (watch) và QKĐ cho hành động xen vào (call).' },
+                { question: 'By the time she arrived, we _______ (already/finish) our dinner.', answer: ['had already finished'], explanation: 'Dùng thì QKHT để diễn tả hành động xảy ra trước một hành động khác trong quá khứ.' }
+            ],
+            'Câu điều kiện': [
+                { question: 'If I _______ (be) you, I _______ (study) harder for the exam.', answer: ['were', 'would study'], explanation: 'Câu điều kiện loại 2, diễn tả một giả định trái với hiện tại.' }
+            ]
+        };
+
+        // --- UTILITY FUNCTIONS ---
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // --- TEMPLATES (Mostly unchanged) ---
+        const templates = {
+            dashboard: `
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <h3 class="font-bold text-gray-800 text-lg">Từ Cần Ôn Tập</h3>
+                        <p class="text-3xl font-bold text-blue-600 mt-2">15</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <h3 class="font-bold text-gray-800 text-lg">Bài Học Ngữ Pháp</h3>
+                        <p class="text-3xl font-bold text-green-600 mt-2">5/12</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <h3 class="font-bold text-gray-800 text-lg">Chuỗi Ngày Học</h3>
+                        <p class="text-3xl font-bold text-yellow-500 mt-2">7 <i class="fas fa-fire"></i></p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <h3 class="font-bold text-gray-800 text-lg">Mục Tiêu Hàng Ngày</h3>
+                        <div class="w-full bg-gray-200 rounded-full h-2.5 mt-4">
+                            <div class="bg-blue-600 h-2.5 rounded-full" style="width: 75%"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-8 bg-white p-6 rounded-lg shadow">
+                    <h3 class="font-bold text-xl text-gray-800 mb-4">Hoạt Động Gần Đây</h3>
+                    <p class="text-gray-600">Bạn vừa hoàn thành bộ flashcards "Unit 1: Family Life".</p>
+                </div>
+            `,
+            flashcards: `
+                <div class="max-w-2xl mx-auto">
+                    <div class="mb-6">
+                        <label for="collection-select" class="block mb-2 text-sm font-medium text-gray-900">Chọn bộ sưu tập:</label>
+                        <select id="collection-select" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                            ${appState.vocabulary.collections.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div id="flashcard-view">
+                        <!-- Flashcard will be rendered here -->
+                    </div>
+                    <div class="flex justify-center items-center mt-6 space-x-2">
+                        <button id="prev-card" class="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"><i class="fas fa-arrow-left"></i></button>
+                        <span id="card-progress">1 / 10</span>
+                        <button id="next-card" class="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"><i class="fas fa-arrow-right"></i></button>
+                    </div>
+                    <div id="anki-controls" class="mt-4 text-center space-x-2 hidden">
+                         <button data-rating="1" class="anki-btn px-4 py-2 text-white bg-red-500 rounded-lg hover:bg-red-600">Lặp lại (&lt;10m)</button>
+                         <button data-rating="2" class="anki-btn px-4 py-2 text-white bg-orange-500 rounded-lg hover:bg-orange-600">Khó (&lt;1d)</button>
+                         <button data-rating="3" class="anki-btn px-4 py-2 text-white bg-blue-500 rounded-lg hover:bg-blue-600">Tốt (3d)</button>
+                         <button data-rating="4" class="anki-btn px-4 py-2 text-white bg-green-500 rounded-lg hover:bg-green-600">Dễ (7d)</button>
+                    </div>
+                </div>
+                 <div class="mt-8 max-w-2xl mx-auto bg-white p-6 rounded-lg shadow">
+                    <h3 class="font-bold text-xl text-gray-800 mb-4">Tải lên từ Google Trang tính</h3>
+                    <p class="text-gray-600 mb-4">Tải lên file .csv với các cột: English, Vietnamese, Example.</p>
+                    <input type="file" id="csv-upload" accept=".csv" class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none">
+                </div>
+            `,
+            grammar: `
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h3 class="font-bold text-xl text-gray-800 mb-4">Chọn Chủ Đề Ngữ Pháp</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        ${Object.keys(mockGrammar).map(topic => `<button class="grammar-topic p-4 border rounded-lg hover:shadow-md text-left">${topic}</button>`).join('')}
+                    </div>
+                </div>
+                <div id="grammar-exercise" class="mt-8 bg-white p-6 rounded-lg shadow hidden"></div>
+                <div class="mt-8 bg-white p-6 rounded-lg shadow">
+                    <h3 class="font-bold text-xl text-gray-800 mb-4">Tải lên bài tập PDF</h3>
+                    <p class="text-gray-600 mb-4">AI sẽ tự động phân tích câu hỏi ngữ pháp từ file PDF của bạn.</p>
+                    <input type="file" id="pdf-grammar-upload" accept=".pdf" class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none">
+                     <p id="pdf-grammar-status" class="text-center text-gray-500 text-sm mt-4 hidden">- AI đang xử lý... -</p>
+                </div>
+            `,
+            reading: `
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h3 class="font-bold text-xl text-gray-800 mb-4">Đọc Báo Tiếng Anh</h3>
+                    <div class="mb-4">
+                        <label for="vietnamese-news" class="block mb-2 text-sm font-medium text-gray-900">Dán bản tin tiếng Việt vào đây:</label>
+                        <textarea id="vietnamese-news" rows="6" class="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500" placeholder="Nhập tin tức tiếng Việt..."></textarea>
+                        <button id="translate-news-btn" class="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">AI Dịch & Tạo Bài Học</button>
+                    </div>
+                    <div id="reading-content" class="mt-6 hidden">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <h4 class="font-bold text-lg mb-2">English News</h4>
+                                <div class="p-4 border rounded-lg bg-gray-50 max-h-96 overflow-y-auto">
+                                    <p>The <strong class="text-blue-600">ubiquitous</strong> nature of smartphones has <strong class="text-blue-600">revolutionized</strong> how we communicate. This technological <strong class="text-blue-600">advancement</strong>, however, is not without its drawbacks. Many experts argue that excessive screen time can be <strong class="text-blue-600">detrimental</strong> to both mental and physical health. It is imperative that users find a healthy balance.</p>
+                                </div>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-lg mb-2">Bản Dịch Tiếng Việt</h4>
+                                <div class="p-4 border rounded-lg bg-gray-50 max-h-96 overflow-y-auto">
+                                     <p>Bản chất <strong class="text-blue-600">phổ biến, ở đâu cũng có</strong> của điện thoại thông minh đã <strong class="text-blue-600">cách mạng hóa</strong> cách chúng ta giao tiếp. Tuy nhiên, <strong class="text-blue-600">tiến bộ</strong> công nghệ này không phải là không có những hạn chế. Nhiều chuyên gia cho rằng thời gian sử dụng màn hình quá mức có thể <strong class="text-blue-600">gây hại</strong> cho cả sức khỏe tinh thần và thể chất. Điều cấp bách là người dùng phải tìm thấy một sự cân bằng lành mạnh.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-8">
+                            <h4 class="font-bold text-lg mb-2">Comprehension Questions</h4>
+                            <div class="space-y-4">
+                                <p><strong>1. What is the main topic of the passage?</strong></p>
+                                <div class="space-y-2" id="reading-q1">
+                                    <label class="flex items-center"><input type="radio" name="q1" value="A" class="mr-2"> A) The history of communication.</label>
+                                    <label class="flex items-center"><input type="radio" name="q1" value="B" class="mr-2"> B) The pros and cons of smartphone usage.</label>
+                                    <label class="flex items-center"><input type="radio" name="q1" value="C" class="mr-2"> C) The manufacturing process of smartphones.</label>
+                                    <label class="flex items-center"><input type="radio" name="q1" value="D" class="mr-2"> D) The future of technology.</label>
+                                </div>
+                                <div id="q1-feedback" class="p-2 rounded-lg mt-2 hidden"></div>
+                            </div>
+                        </div>
+                        <div class="mt-8">
+                            <h4 class="font-bold text-lg mb-2">Vocabulary Table</h4>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-sm text-left text-gray-500">
+                                    <thead class="text-xs text-gray-700 uppercase bg-gray-100">
+                                        <tr>
+                                            <th scope="col" class="px-6 py-3">Từ vựng</th><th scope="col" class="px-6 py-3">Phiên âm</th><th scope="col" class="px-6 py-3">Nghĩa</th><th scope="col" class="px-6 py-3">Synonyms</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr class="bg-white border-b"><td class="px-6 py-4 font-medium">ubiquitous</td><td class="px-6 py-4">/juːˈbɪkwɪtəs/</td><td class="px-6 py-4">phổ biến</td><td class="px-6 py-4">omnipresent, pervasive</td></tr>
+                                        <tr class="bg-white border-b"><td class="px-6 py-4 font-medium">revolutionize</td><td class="px-6 py-4">/ˌrevəˈluːʃənaɪz/</td><td class="px-6 py-4">cách mạng hóa</td><td class="px-6 py-4">transform, innovate</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="mt-8">
+                             <h4 class="font-bold text-lg mb-2">ANSWERS AND EXPLANATIONS</h4>
+                             <p><strong>1. B) The pros and cons of smartphone usage.</strong> The passage discusses both the positive aspect (revolutionized communication) and the negative aspects (detrimental to health).</p>
+                        </div>
+                    </div>
+                </div>
+            `,
+            translate: `
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <h3 class="font-bold text-xl text-gray-800 mb-4">Dịch Việt - Anh</h3>
+                        <textarea id="translate-input" class="w-full h-48 p-2 border rounded" placeholder="Nhập văn bản tiếng Việt..."></textarea>
+                        <button id="translate-btn" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Dịch & So Sánh</button>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <h3 class="font-bold text-xl text-gray-800 mb-4">Kết Quả & Gợi Ý</h3>
+                        <div id="translate-output" class="p-2 border rounded bg-gray-50 min-h-[200px]">
+                            <p class="text-gray-500">Bản dịch và gợi ý cải thiện sẽ xuất hiện ở đây...</p>
+                        </div>
+                    </div>
+                </div>
+            `,
+            exam: `
+                <div id="exam-selection" class="bg-white p-6 rounded-lg shadow">
+                    <h3 class="font-bold text-xl text-gray-800 mb-4">Chọn Đề Thi</h3>
+                    <div id="exam-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        ${Object.keys(appState.exams).map(examId => `<button class="exam-start-btn p-4 border rounded-lg hover:shadow-md text-left" data-exam="${examId}">${appState.exams[examId].name}</button>`).join('')}
+                    </div>
+                    <div class="mt-8">
+                        <h3 class="font-bold text-xl text-gray-800 mb-4">Tải lên đề thi PDF</h3>
+                        <p class="text-gray-600 mb-4">AI sẽ xử lý file PDF và tạo một đề thi mới trong danh sách trên.</p>
+                        <input type="file" id="pdf-exam-upload" accept=".pdf" class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none">
+                        <p id="pdf-exam-status" class="text-center text-gray-500 text-sm mt-4 hidden">- AI đang xử lý... -</p>
+                    </div>
+                </div>
+                <div id="exam-view" class="hidden">
+                    <div class="flex justify-between items-center bg-white p-4 rounded-lg shadow mb-4 sticky top-0 z-10">
+                        <div>
+                            <button id="back-to-exams" class="text-gray-600 hover:text-blue-600 mr-4"><i class="fas fa-arrow-left"></i> Quay lại</button>
+                            <h3 id="exam-title" class="font-bold text-xl inline-block">Đề thi thử THPT 2023</h3>
+                        </div>
+                        <div id="exam-timer" class="font-bold text-2xl text-red-600">60:00</div>
+                    </div>
+                    <div class="flex flex-col lg:flex-row gap-8">
+                        <div id="exam-questions-container" class="flex-grow"></div>
+                        <div id="exam-navigator-container" class="w-full lg:w-1/4"></div>
+                    </div>
+                    <button id="submit-exam-btn" class="mt-6 px-6 py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 w-full">NỘP BÀI</button>
+                </div>
+                <div id="exam-results" class="hidden bg-white p-6 rounded-lg shadow"></div>
+            `,
+            vocabulary: `
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-xl text-gray-800">Sổ Từ Vựng Của Tôi</h3>
+                        <div>
+                            <button id="add-collection-btn" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">Thêm bộ sưu tập</button>
+                            <button id="export-csv-btn" class="ml-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm">Xuất CSV cho Anki</button>
+                        </div>
+                    </div>
+                    <div id="collections-list" class="space-y-4">
+                        <!-- Collections will be rendered here -->
+                    </div>
+                </div>
+            `,
+            wordFamily: `
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h3 class="font-bold text-xl text-gray-800 mb-4">Tra Cứu Họ Từ (Word Family)</h3>
+                    <div class="flex">
+                        <input type="text" id="word-family-input" class="w-full p-2 border rounded-l-lg" placeholder="Nhập một từ (ví dụ: succeed)">
+                        <button id="word-family-search-btn" class="px-4 py-2 bg-blue-600 text-white rounded-r-lg hover:bg-blue-700">Tra cứu</button>
+                    </div>
+                    <div id="word-family-results" class="mt-6 overflow-x-auto"></div>
+                </div>
+            `,
+            progress: `
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h3 class="font-bold text-xl text-gray-800 mb-4">Báo Cáo Tiến Độ Học Tập</h3>
+                    <p class="text-gray-600">Tính năng này đang được phát triển. Dữ liệu phân tích lỗi sai và đề xuất ôn tập sẽ được hiển thị ở đây.</p>
+                </div>
+            `
+        };
+
+        // --- RENDER FUNCTIONS ---
+        const pageContainer = document.getElementById('page-container');
+        const pageTitle = document.getElementById('page-title');
+
+        function renderPage(pageName) {
+            if (!templates[pageName]) pageName = 'dashboard';
+            pageContainer.innerHTML = templates[pageName];
+            const navLink = document.querySelector(`a[href="#${pageName}"]`);
+            if (navLink) {
+                pageTitle.textContent = navLink.querySelector('span').textContent;
+            }
+            appState.currentPage = pageName;
+            
+            // Add page-specific event listeners
+            if (pageName === 'flashcards') initFlashcards();
+            if (pageName === 'grammar') initGrammar();
+            if (pageName === 'reading') initReading();
+            if (pageName === 'translate') initTranslate();
+            if (pageName === 'exam') initExam();
+            if (pageName === 'vocabulary') initVocabulary();
+            if (pageName === 'wordFamily') initWordFamily();
+        }
+        
+        // --- FEATURE INITIALIZATION ---
+        
+        function initFlashcards() {
+            const collectionSelect = document.getElementById('collection-select');
+            collectionSelect.addEventListener('change', (e) => {
+                appState.currentFlashcard.collectionId = parseInt(e.target.value);
+                appState.currentFlashcard.wordIndex = 0;
+                renderFlashcard();
+            });
+
+            document.getElementById('prev-card').addEventListener('click', showPrevCard);
+            document.getElementById('next-card').addEventListener('click', showNextCard);
+            
+            document.getElementById('flashcard-view').addEventListener('click', (e) => {
+                const flashcard = e.target.closest('.flashcard');
+                if (flashcard) {
+                    flashcard.classList.toggle('is-flipped');
+                    document.getElementById('anki-controls').classList.toggle('hidden', !flashcard.classList.contains('is-flipped'));
+                }
+            });
+
+            document.getElementById('anki-controls').addEventListener('click', (e) => {
+                if (e.target.classList.contains('anki-btn')) {
+                    const rating = parseInt(e.target.dataset.rating);
+                    updateSpacedRepetition(rating);
+                    showNextCard();
+                }
+            });
+            
+            document.getElementById('csv-upload').addEventListener('change', handleCsvUpload);
+
+            renderFlashcard();
+        }
+        
+        function updateSpacedRepetition(rating) {
+            const { collectionId, wordIndex } = appState.currentFlashcard;
+            const collection = appState.vocabulary.collections.find(c => c.id === collectionId);
+            const wordId = collection.words[wordIndex];
+            const word = appState.vocabulary.words[wordId];
+
+            // Simplified SM-2 algorithm simulation
+            if (rating < 3) { // Again, Hard
+                word.interval = 1;
+            } else { // Good, Easy
+                if (word.interval === 1) {
+                    word.interval = rating === 3 ? 3 : 7; // Good: 3 days, Easy: 7 days
+                } else {
+                    word.interval = Math.round(word.interval * word.easeFactor);
+                }
+                word.easeFactor += (0.1 - (5 - rating) * (0.08 + (5 - rating) * 0.02));
+                if (word.easeFactor < 1.3) word.easeFactor = 1.3;
+            }
+            
+            const nextReviewDate = new Date();
+            if (rating === 1) { // Lặp lại < 10m
+                 nextReviewDate.setMinutes(nextReviewDate.getMinutes() + 10);
+            } else {
+                 nextReviewDate.setDate(nextReviewDate.getDate() + word.interval);
+            }
+           
+            word.nextReview = nextReviewDate;
+            showToast(`Đã xếp lịch ôn tập lại từ "${word.eng}" sau ${word.interval} ngày.`);
+        }
+
+        function renderFlashcard() {
+            const { collectionId, wordIndex } = appState.currentFlashcard;
+            const collection = appState.vocabulary.collections.find(c => c.id === collectionId);
+            if (!collection || collection.words.length === 0) {
+                document.getElementById('flashcard-view').innerHTML = `<p class="text-center text-gray-500 p-10 bg-white rounded-lg">Bộ sưu tập này chưa có từ nào.</p>`;
+                document.getElementById('card-progress').textContent = `0 / 0`;
+                return;
+            }
+
+            const wordId = collection.words[wordIndex];
+            const word = appState.vocabulary.words[wordId];
+            
+            const flashcardHTML = `
+                <div class="flashcard-container">
+                    <div class="flashcard">
+                        <div class="flashcard-face flashcard-front">
+                            <h2 class="text-4xl font-bold text-gray-800">${word.eng}</h2>
+                            <p class="text-lg text-gray-500 mt-2">${word.type}</p>
+                            <p class="text-lg text-gray-500">${word.ipa}</p>
+                        </div>
+                        <div class="flashcard-face flashcard-back text-left w-full">
+                            <p class="text-2xl font-bold text-blue-700">${word.meaning}</p>
+                            <p class="mt-4"><strong class="font-semibold">Ex:</strong> <span class="italic">${word.example}</span></p>
+                            <p class="mt-2"><strong class="font-semibold">Col:</strong> ${word.collocations}</p>
+                            <div class="mt-2">
+                                <strong class="font-semibold">Syn:</strong> 
+                                ${word.synonyms.map(s => `<span class="pill pill-blue">${s}</span>`).join('')}
+                            </div>
+                            <div class="mt-2">
+                                <strong class="font-semibold">Ant:</strong> 
+                                ${word.antonyms.map(a => `<span class="pill pill-red">${a}</span>`).join('')}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('flashcard-view').innerHTML = flashcardHTML;
+            document.getElementById('card-progress').textContent = `${wordIndex + 1} / ${collection.words.length}`;
+            document.getElementById('anki-controls').classList.add('hidden');
+        }
+
+        function showNextCard() {
+            const { collectionId, wordIndex } = appState.currentFlashcard;
+            const collection = appState.vocabulary.collections.find(c => c.id === collectionId);
+            if (!collection || collection.words.length === 0) return;
+            
+            if (wordIndex < collection.words.length - 1) {
+                appState.currentFlashcard.wordIndex++;
+            } else {
+                appState.currentFlashcard.wordIndex = 0; // Loop back to start
+                showToast("Bạn đã hoàn thành bộ flashcard này!");
+            }
+            renderFlashcard();
+        }
+
+        function showPrevCard() {
+            const { wordIndex } = appState.currentFlashcard;
+            if (wordIndex > 0) {
+                appState.currentFlashcard.wordIndex--;
+                renderFlashcard();
+            }
+        }
+        
+        function handleCsvUpload(event) {
+            if (event.target.files.length > 0) {
+                showToast(`Đã nhận file: ${event.target.files[0].name}. Đang xử lý...`);
+                // Simulate processing and adding words
+                setTimeout(() => {
+                    const newWords = [
+                        { eng: 'ambitious', type: '(adj)', ipa: '/æmˈbɪʃəs/', meaning: 'tham vọng', example: 'He is a very ambitious young man.', collocations: 'ambitious project', synonyms: ['aspiring', 'driven'], antonyms: ['apathetic'] },
+                        { eng: 'conscientious', type: '(adj)', ipa: '/ˌkɒnʃiˈenʃəs/', meaning: 'tận tâm, chu đáo', example: 'She is a conscientious worker.', collocations: 'conscientious student', synonyms: ['diligent', 'meticulous'], antonyms: ['careless'] },
+                    ];
+                    
+                    let uploadedCollection = appState.vocabulary.collections.find(c => c.name === 'Uploaded from CSV');
+                    if (!uploadedCollection) {
+                        uploadedCollection = { id: appState.vocabulary.collections.length + 1, name: 'Uploaded from CSV', words: [] };
+                        appState.vocabulary.collections.push(uploadedCollection);
+                    }
+                    
+                    newWords.forEach(word => {
+                        const newId = appState.vocabulary.nextWordId++;
+                        appState.vocabulary.words[newId] = { id: newId, ...word, status: 'new', nextReview: new Date(), interval: 1, easeFactor: 2.5 };
+                        uploadedCollection.words.push(newId);
+                    });
+                    
+                    showToast('Đã thêm 2 từ mới từ file CSV!');
+                    renderPage('flashcards'); // Re-render to show new collection
+                }, 2000);
+            }
+        }
+
+        function initGrammar() {
+            document.querySelectorAll('.grammar-topic').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const topic = e.target.textContent;
+                    const exerciseContainer = document.getElementById('grammar-exercise');
+                    exerciseContainer.classList.remove('hidden');
+                    
+                    const exercise = mockGrammar[topic][0]; // Get first exercise for demo
+                    
+                    exerciseContainer.innerHTML = `
+                        <h4 class="font-bold text-lg mb-4">${topic}</h4>
+                        <p class="mb-2"><strong>Điền vào chỗ trống:</strong></p>
+                        <p class="text-lg mb-4">${exercise.question.replace(/_______/g, '<input type="text" class="grammar-input border p-1 rounded mx-1 w-32">')}</p>
+                        <div id="grammar-feedback" class="p-4 bg-blue-100 text-blue-800 rounded-lg hidden"></div>
+                        <button id="check-grammar-btn" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Kiểm Tra</button>
+                    `;
+                    
+                    document.getElementById('check-grammar-btn').addEventListener('click', () => {
+                        const inputs = exerciseContainer.querySelectorAll('.grammar-input');
+                        let isCorrect = true;
+                        inputs.forEach((input, index) => {
+                            if (input.value.trim().toLowerCase() !== exercise.answer[index].toLowerCase()) {
+                                isCorrect = false;
+                            }
+                        });
+                        
+                        const feedbackEl = document.getElementById('grammar-feedback');
+                        feedbackEl.classList.remove('hidden');
+                        if (isCorrect) {
+                            feedbackEl.className = 'p-4 bg-green-100 text-green-800 rounded-lg';
+                            feedbackEl.innerHTML = `<strong>Chính xác!</strong> ${exercise.explanation}`;
+                        } else {
+                            feedbackEl.className = 'p-4 bg-red-100 text-red-800 rounded-lg';
+                            feedbackEl.innerHTML = `<strong>Chưa đúng.</strong> Đáp án đúng là: <strong>${exercise.answer.join(', ')}</strong>. ${exercise.explanation}`;
+                        }
+                    });
+                });
+            });
+            
+            document.getElementById('pdf-grammar-upload').addEventListener('change', (e) => {
+                 if (e.target.files.length > 0) {
+                    const status = document.getElementById('pdf-grammar-status');
+                    status.classList.remove('hidden');
+                    setTimeout(() => {
+                        status.classList.add('hidden');
+                        showToast(`Đã xử lý file ${e.target.files[0].name} và tạo bài tập mới!`);
+                        document.querySelector('.grammar-topic').click(); // Simulate clicking the first topic
+                    }, 2500);
+                 }
+            });
+        }
+        
+        function initReading() {
+            document.getElementById('translate-news-btn').addEventListener('click', () => {
+                const vietnameseText = document.getElementById('vietnamese-news').value;
+                if (vietnameseText.trim() !== "") {
+                    showToast("AI đang dịch và tạo bài học...");
+                    setTimeout(() => {
+                        document.getElementById('reading-content').classList.remove('hidden');
+                    }, 1500);
+                } else {
+                    showToast("Vui lòng nhập bản tin tiếng Việt.");
+                }
+            });
+            
+            document.getElementById('reading-q1').addEventListener('change', (e) => {
+                const feedbackEl = document.getElementById('q1-feedback');
+                feedbackEl.classList.remove('hidden');
+                if (e.target.value === 'B') {
+                    feedbackEl.className = 'p-2 rounded-lg mt-2 bg-green-100 text-green-800';
+                    feedbackEl.textContent = 'Chính xác! Bài đọc đề cập đến cả lợi ích và tác hại của điện thoại.';
+                } else {
+                    feedbackEl.className = 'p-2 rounded-lg mt-2 bg-red-100 text-red-800';
+                    feedbackEl.textContent = 'Chưa đúng, hãy đọc lại và chú ý đến cả mặt tốt và mặt xấu được đề cập.';
+                }
+            });
+        }
+
+        function initTranslate() {
+            document.getElementById('translate-btn').addEventListener('click', () => {
+                const input = document.getElementById('translate-input').value;
+                if (!input) return;
+                showToast("AI đang dịch...");
+                setTimeout(() => {
+                    document.getElementById('translate-output').innerHTML = `
+                        <p><strong>Bản dịch chuẩn:</strong> The diligent students always finish their homework on time.</p>
+                        <p class="mt-4"><strong>Gợi ý:</strong> Từ "siêng năng" có thể dịch là "diligent" hoặc "hard-working". Cấu trúc "finish sth on time" (hoàn thành đúng giờ) rất phổ biến.</p>
+                    `;
+                }, 1500);
+            });
+        }
+
+        function initExam() {
+            document.querySelectorAll('.exam-start-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    startExam(e.currentTarget.dataset.exam);
+                });
+            });
+            
+            document.getElementById('pdf-exam-upload').addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const status = document.getElementById('pdf-exam-status');
+                    status.classList.remove('hidden');
+                    status.textContent = `- AI đang xử lý file: ${file.name}... -`;
+
+                    setTimeout(() => {
+                        status.classList.add('hidden');
+                        const newExamId = `uploaded-pdf-${Date.now()}`;
+                        const examName = `Đề từ file: ${file.name.length > 20 ? file.name.substring(0, 20) + '...' : file.name}`;
+                        
+                        appState.exams[newExamId] = { ...mockPdfExamContent, name: examName };
+                        
+                        renderPage('exam'); // Re-render the exam selection page
+                        showToast(`Đã xử lý xong! Đề thi của bạn đã sẵn sàng.`);
+                        e.target.value = ''; // Reset file input
+                    }, 3000);
+                }
+            });
+        }
+
+        function startExam(examId) {
+            const examData = appState.exams[examId];
+            if (!examData) return;
+
+            document.getElementById('exam-selection').classList.add('hidden');
+            document.getElementById('exam-view').classList.remove('hidden');
+            document.getElementById('exam-title').textContent = examData.name;
+            
+            const questionsContainer = document.getElementById('exam-questions-container');
+            const navigatorContainer = document.getElementById('exam-navigator-container');
+            
+            let questionsHTML = '';
+            let navigatorHTML = '';
+            let questionCounter = 0;
+
+            examData.questions.forEach(item => {
+                if(item.type === 'mcq') {
+                    questionCounter++;
+                    questionsHTML += renderMcqQuestion(item, questionCounter);
+                } else if (item.type === 'reading_cloze') {
+                    let passageHtml = `<div class="bg-white p-6 rounded-lg shadow mb-6"><p class="text-gray-700 leading-relaxed">${item.passage}</p></div>`;
+                    item.questions.forEach(q => {
+                        questionCounter++;
+                        passageHtml += renderMcqQuestion(q, questionCounter, true);
+                    });
+                    questionsHTML += passageHtml;
+                } else if (item.type === 'reading_passage') {
+                    let passageHtml = `<div class="bg-white p-6 rounded-lg shadow mb-6"><h4 class="font-bold mb-2">Read the passage and answer the questions.</h4><p class="text-gray-700 leading-relaxed">${item.passage}</p></div>`;
+                    item.questions.forEach(q => {
+                        questionCounter++;
+                        passageHtml += renderMcqQuestion(q, questionCounter, true);
+                    });
+                    questionsHTML += passageHtml;
+                }
+            });
+            
+            let navButtons = '';
+            for(let i = 1; i <= questionCounter; i++) {
+                navButtons += `<a href="#q-${i}" class="nav-q-btn" data-q-id="${i}">${i}</a>`;
+            }
+            navigatorHTML = `
+                <div class="bg-white p-4 rounded-lg shadow sticky top-24">
+                    <h4 class="font-bold mb-4">Câu hỏi</h4>
+                    <div id="exam-navigator" class="grid grid-cols-5 gap-2">
+                        ${navButtons}
+                    </div>
+                </div>
+            `;
+
+            questionsContainer.innerHTML = questionsHTML;
+            navigatorContainer.innerHTML = navigatorHTML;
+
+            // Add event listeners for navigator
+            questionsContainer.addEventListener('change', (e) => {
+                if (e.target.type === 'radio') {
+                    const qId = e.target.name.split('-')[1];
+                    document.querySelector(`.nav-q-btn[data-q-id="${qId}"]`).classList.add('answered');
+                }
+            });
+
+            // Timer
+            let timeLeft = 60 * 60;
+            const timerEl = document.getElementById('exam-timer');
+            const timerInterval = setInterval(() => {
+                timeLeft--;
+                const minutes = Math.floor(timeLeft / 60);
+                const seconds = timeLeft % 60;
+                timerEl.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    submitExam();
+                }
+            }, 1000);
+
+            document.getElementById('submit-exam-btn').onclick = () => {
+                clearInterval(timerInterval);
+                submitExam();
+            };
+            
+            document.getElementById('back-to-exams').onclick = () => {
+                 clearInterval(timerInterval);
+                 renderPage('exam');
+            };
+        }
+        
+        function renderMcqQuestion(q, number, isSubQuestion = false) {
+            const containerClass = isSubQuestion ? 'mb-6 ml-4' : 'bg-white p-6 rounded-lg shadow mb-6';
+            return `
+                <div id="q-${number}" class="${containerClass}">
+                    <p class="font-bold mb-4">Câu ${number}: ${q.question}</p>
+                    <div class="space-y-2">
+                        ${q.options.map(opt => `
+                            <label class="block p-3 border rounded-lg hover:bg-gray-100 cursor-pointer">
+                                <input type="radio" name="q-${number}" value="${opt[0]}" class="mr-3">${opt}
+                            </label>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+
+        function submitExam() {
+            document.getElementById('exam-view').classList.add('hidden');
+            const resultsContainer = document.getElementById('exam-results');
+            resultsContainer.classList.remove('hidden');
+            // AI Integration Point: Analyze answers and generate report
+            resultsContainer.innerHTML = `
+                <h3 class="font-bold text-2xl text-gray-800 mb-4">Kết Quả Bài Thi</h3>
+                <p class="text-lg">Điểm số của bạn: <strong class="text-blue-600">8.5 / 10</strong></p>
+                <div class="mt-6">
+                    <h4 class="font-bold text-xl mb-2">Thống Kê Kiến Thức</h4>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left text-gray-500">
+                            <thead class="text-xs text-gray-700 uppercase bg-gray-100">
+                                <tr>
+                                    <th class="px-6 py-3">STT</th><th class="px-6 py-3">Kiến thức</th><th class="px-6 py-3">Câu</th><th class="px-6 py-3">Số câu đúng</th><th class="px-6 py-3">Tỷ lệ đúng</th><th class="px-6 py-3">Hành động</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="bg-white border-b">
+                                    <td class="px-6 py-4">1</td><td class="px-6 py-4">Từ vựng C1</td><td class="px-6 py-4">1, 5, 8</td><td class="px-6 py-4">2/3</td><td class="px-6 py-4">66.7%</td>
+                                    <td class="px-6 py-4"><button class="exam-action-btn pill pill-red" data-action="flashcards" data-collection="3">Học lại</button></td>
+                                </tr>
+                                <tr class="bg-white border-b">
+                                    <td class="px-6 py-4">2</td><td class="px-6 py-4">Thì của động từ</td><td class="px-6 py-4">2, 9</td><td class="px-6 py-4">2/2</td><td class="px-6 py-4">100%</td>
+                                    <td class="px-6 py-4"><button class="exam-action-btn pill pill-green" data-action="grammar" data-topic="Thì của động từ">Ôn lại</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                 <div class="mt-6">
+                    <h4 class="font-bold text-xl mb-2">Phân Tích Độ Khó</h4>
+                    <p>Nhận biết: 10/10 đúng</p>
+                    <p>Thông hiểu: 8/10 đúng</p>
+                    <p>Vận dụng: 5/10 đúng</p>
+                    <p>Vận dụng cao: 2/5 đúng</p>
+                </div>
+                <button id="back-to-exams-result" class="mt-6 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Quay lại danh sách đề</button>
+            `;
+
+            document.getElementById('back-to-exams-result').addEventListener('click', () => {
+                 renderPage('exam');
+            });
+            
+            document.querySelectorAll('.exam-action-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const action = e.target.dataset.action;
+                    if (action === 'flashcards') {
+                        const collectionId = e.target.dataset.collection;
+                        window.location.hash = '#flashcards';
+                        // We need to wait for the page to render before changing the select
+                        setTimeout(() => document.getElementById('collection-select').value = collectionId, 50);
+                    } else if (action === 'grammar') {
+                        const topic = e.target.dataset.topic;
+                        window.location.hash = '#grammar';
+                         setTimeout(() => {
+                           const topicButton = Array.from(document.querySelectorAll('.grammar-topic')).find(b => b.textContent === topic);
+                           if(topicButton) topicButton.click();
+                        }, 50);
+                    }
+                });
+            });
+        }
+
+        function initVocabulary() {
+            const listEl = document.getElementById('collections-list');
+            
+            function renderCollections() {
+                listEl.innerHTML = appState.vocabulary.collections.map(col => `
+                    <div class="p-4 border rounded-lg bg-white">
+                        <details>
+                            <summary class="font-bold cursor-pointer">${col.name} <span class="text-sm font-normal text-gray-500">(${col.words.length} từ)</span></summary>
+                            <ul class="mt-4 pl-5 list-disc space-y-1">
+                                ${col.words.map(wordId => `<li>${appState.vocabulary.words[wordId].eng} - ${appState.vocabulary.words[wordId].meaning}</li>`).join('') || '<li class="list-none text-gray-400">Chưa có từ nào.</li>'}
+                            </ul>
+                        </details>
+                    </div>
+                `).join('');
+            }
+            
+            document.getElementById('add-collection-btn').addEventListener('click', () => {
+                const name = prompt("Nhập tên bộ sưu tập mới:");
+                if (name && name.trim() !== "") {
+                    const newCollection = {
+                        id: appState.vocabulary.collections.length + 1,
+                        name: name.trim(),
+                        words: []
+                    };
+                    appState.vocabulary.collections.push(newCollection);
+                    renderCollections();
+                    showToast(`Đã tạo bộ sưu tập "${name.trim()}"!`);
+                }
+            });
+            
+            document.getElementById('export-csv-btn').addEventListener('click', exportToCSV);
+            renderCollections();
+        }
+
+        function exportToCSV() {
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "English,Type,IPA,Meaning,Example,Collocations,Synonyms,Antonyms\n";
+            Object.values(appState.vocabulary.words).forEach(word => {
+                const row = [
+                    word.eng, word.type, word.ipa, word.meaning, `"${word.example.replace(/"/g, '""')}"`, `"${word.collocations.replace(/"/g, '""')}"`, `"${word.synonyms.join(', ')}"`, `"${word.antonyms.join(', ')}"`
+                ].join(',');
+                csvContent += row + "\r\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "my_vocabulary.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast("Đã bắt đầu tải xuống file CSV!");
+        }
+
+        function initWordFamily() {
+            const searchBtn = document.getElementById('word-family-search-btn');
+            const input = document.getElementById('word-family-input');
+            
+            const performSearch = () => {
+                const query = input.value.toLowerCase().trim();
+                const result = mockWordFamily[query];
+                const resultsContainer = document.getElementById('word-family-results');
+                if (result) {
+                    resultsContainer.innerHTML = `
+                        <table class="w-full text-sm text-left text-gray-500 mt-4">
+                            <thead class="text-xs text-gray-700 uppercase bg-gray-100">
+                                <tr>
+                                    ${Object.keys(result).map(key => `<th class="px-6 py-3">${key.charAt(0).toUpperCase() + key.slice(1)}</th>`).join('')}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="bg-white border-b">
+                                    ${Object.values(result).map(val => `<td class="px-6 py-4">${val}</td>`).join('')}
+                                </tr>
+                            </tbody>
+                        </table>
+                    `;
+                } else {
+                    resultsContainer.innerHTML = `<p class="text-center text-gray-500 mt-4">Không tìm thấy từ này. AI đang học hỏi thêm...</p>`;
+                }
+            };
+            
+            searchBtn.addEventListener('click', performSearch);
+            input.addEventListener('keyup', (e) => {
+                if (e.key === 'Enter') performSearch();
+            });
+        }
+        
+        // --- MINI DICTIONARY ---
+        function showMiniDictionary(word, x, y) {
+            const normalizedWord = word.toLowerCase().replace(/d$/, ''); // Handle cases like 'revolutionized'
+            const data = appState.vocabulary.words[Object.keys(appState.vocabulary.words).find(k => appState.vocabulary.words[k].eng === normalizedWord)] || mockDictionary[normalizedWord];
+            const dict = document.getElementById('mini-dictionary');
+            
+            if (data) {
+                dict.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="font-bold text-lg text-blue-700">${word}</p>
+                            <p class="text-sm text-gray-500">${data.type} ${data.ipa}</p>
+                        </div>
+                        <button id="save-to-vocab" data-word-eng="${data.eng}" title="Lưu vào sổ từ vựng" class="text-gray-400 hover:text-blue-600 text-xl"><i class="fas fa-bookmark"></i></button>
+                    </div>
+                    <p class="text-lg mt-2">${data.meaning}</p>
+                    <p class="mt-2"><strong class="font-semibold text-sm">Ex:</strong> <span class="italic text-sm">${data.example}</span></p>
+                    <p class="mt-2"><strong class="font-semibold text-sm">Col:</strong> <span class="text-sm">${data.collocations}</span></p>
+                    <div class="mt-2">
+                        <strong class="font-semibold text-sm">Syn:</strong> 
+                        ${data.synonyms.map(s => `<span class="pill pill-blue">${s}</span>`).join('')}
+                    </div>
+                    ${data.antonyms && data.antonyms.length > 0 ? `
+                    <div class="mt-2">
+                        <strong class="font-semibold text-sm">Ant:</strong> 
+                        ${data.antonyms.map(a => `<span class="pill pill-red">${a}</span>`).join('')}
+                    </div>` : ''}
+                `;
+                
+                // Position adjustment
+                const dictWidth = 320;
+                const dictHeight = dict.offsetHeight;
+                let finalX = x;
+                let finalY = y;
+                if (x + dictWidth > window.innerWidth) {
+                    finalX = window.innerWidth - dictWidth - 20;
+                }
+                if (y + dictHeight > window.innerHeight) {
+                    finalY = y - dictHeight - 10;
+                }
+
+                dict.style.left = `${finalX}px`;
+                dict.style.top = `${finalY}px`;
+                dict.style.display = 'block';
+                
+                document.getElementById('save-to-vocab').addEventListener('click', (e) => {
+                    const wordToSave = e.currentTarget.dataset.wordEng;
+                    const wordData = Object.values(appState.vocabulary.words).find(w => w.eng === wordToSave) || Object.values(mockDictionary).find(w => w.eng === wordToSave);
+                    
+                    // For simplicity, add to the first collection if not already there
+                    const firstCollection = appState.vocabulary.collections[0];
+                    const wordId = Object.keys(appState.vocabulary.words).find(k => appState.vocabulary.words[k].eng === wordToSave);
+                    
+                    if (wordId && !firstCollection.words.includes(parseInt(wordId))) {
+                        firstCollection.words.push(parseInt(wordId));
+                        showToast(`Đã thêm "${wordToSave}" vào bộ ${firstCollection.name}!`);
+                    } else if (!wordId) {
+                        showToast(`"${wordToSave}" không có trong CSDL chính để lưu.`);
+                    } else {
+                        showToast(`"${wordToSave}" đã có trong bộ ${firstCollection.name}.`);
+                    }
+                    dict.style.display = 'none';
+                });
+
+            }
+        }
+
+        document.addEventListener('dblclick', (e) => {
+            const selection = window.getSelection();
+            const word = selection.toString().trim();
+            if (word.length > 1 && /^[a-zA-Z]+$/.test(word)) {
+                const range = selection.getRangeAt(0);
+                const rect = range.getBoundingClientRect();
+                showMiniDictionary(word, rect.left + window.scrollX, rect.bottom + window.scrollY + 5);
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            const dict = document.getElementById('mini-dictionary');
+            if (dict && !dict.contains(e.target) && window.getSelection().toString().trim() === '') {
+                dict.style.display = 'none';
+            }
+        });
+
+        // --- NAVIGATION ---
+        const navLinks = document.querySelectorAll('.nav-link');
+        const sidebar = document.getElementById('sidebar');
+        const menuToggle = document.getElementById('menu-toggle');
+
+        function updateActiveLink(targetHash) {
+            navLinks.forEach(link => {
+                link.classList.remove('bg-blue-100');
+                if (link.getAttribute('href') === targetHash) {
+                    link.classList.add('bg-blue-100');
+                }
+            });
+        }
+
+        window.addEventListener('hashchange', () => {
+            const page = window.location.hash.substring(1) || 'dashboard';
+            renderPage(page);
+            updateActiveLink(window.location.hash || '#dashboard');
+        });
+
+        document.querySelector('.sidebar nav').addEventListener('click', (e) => {
+            const link = e.target.closest('a');
+            if (link) {
+                if (window.innerWidth < 1024) {
+                    sidebar.classList.add('-translate-x-full');
+                }
+            }
+        });
+
+        menuToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('-translate-x-full');
+        });
+
+        // --- INITIAL LOAD ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const initialPage = window.location.hash.substring(1) || 'dashboard';
+            renderPage(initialPage);
+            updateActiveLink(`#${initialPage}`);
+        });
+    </script>
+</body>
+</html>
